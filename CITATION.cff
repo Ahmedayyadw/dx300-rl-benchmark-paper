@@ -6,6 +6,7 @@ authors:
   - family-names: Ayyad
     given-names: Ahmed
     affiliation: "Istanbul Okan University"
+repository-code: "https://github.com/Ahmedayyadw/dx300-rl-benchmark-paper"
 keywords:
   - reinforcement learning
   - benchmark
@@ -20,5 +21,4 @@ references:
       - family-names: Ayyad
         given-names: Ahmed
     repository-code: "https://github.com/Ahmedayyadw/dx300-sim"
-# TODO: add repository-code once the GitHub repository exists
 # TODO: add preferred-citation for the ICEEE 2027 paper on publication
