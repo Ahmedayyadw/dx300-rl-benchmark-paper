@@ -1,0 +1,10 @@
+# Install once with: pre-commit install
+# results/ holds verbatim copies from dx300-sim; hooks must not rewrite them.
+exclude: ^results/
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml

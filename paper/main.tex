@@ -1,0 +1,60 @@
+% ICEEE 2027, Track 2 (Control Systems, Automation & Computing Technologies)
+% IEEEtran conference format, 4-8 double-column pages.
+% Build from the repository root with: make pdf
+\documentclass[conference]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+% Figures are copied from dx300-sim by scripts/sync_results.py.
+\graphicspath{{../results/}}
+
+\begin{document}
+
+\title{Is Reinforcement Learning Worth It? A Benchmark-Driven Design Study of
+Learned Control for an Excavator Boom}
+
+% TODO: confirm author list, affiliation wording and contact line.
+\author{\IEEEauthorblockN{Ahmed Ayyad}
+\IEEEauthorblockA{Istanbul Okan University}}
+
+\maketitle
+
+\begin{abstract}
+\input{sections/00_abstract}
+\end{abstract}
+
+% TODO: add \begin{IEEEkeywords} ... \end{IEEEkeywords}
+
+\section{Introduction}
+\input{sections/01_introduction}
+
+\section{Design Requirements}
+\input{sections/02_design_requirements}
+
+\section{Method Selection}
+\input{sections/03_method_selection}
+
+\section{Benchmark Protocol}
+\input{sections/04_benchmark_protocol}
+
+\section{Results}
+\input{sections/05_results}
+
+\section{Why Learning Lost and When It Would Win}
+\input{sections/06_why_learning_lost}
+
+\section{Design Lessons}
+\input{sections/07_design_lessons}
+
+\section{Conclusion}
+\input{sections/08_conclusion}
+
+% TODO: uncomment the two lines below at the first \cite. With no citation in
+% the document BibTeX writes an empty reference list and the build fails.
+% \bibliographystyle{IEEEtran}
+% \bibliography{refs}
+
+\end{document}
