@@ -1,12 +1,186 @@
-% TODO(results): no text yet. Take every number from results/, never from memory.
-% Fed by dx300-sim (paths relative to its root; [synced] = copied to results/):
-%   rl/11_real_plant_tuning.md  [synced]  Lab 11: energy floor and PID points
-%   rl/12e_stats.md             [synced]  Lab 12e: statistics of the comparison
-%   rl/12f_loads.md             [synced]  Lab 12f: boom cylinder loads per controller
-%   rl/12g_sensitivity.md       [synced]  Lab 12g: sensitivity to the estimated plant
-%   rl/13_benchmark.*           [synced once it exists]  Lab 13: PPO, TD3, BC, CQL, IQL
-%   rl/12d_wsweep.md                      Lab 12d: energy-weight sweep of residual SAC
-%   rl/12h_long.md                        Lab 12h: longer SAC training
-% Candidate figures, not in the sync list yet (add to SOURCES in
-% scripts/sync_results.py when chosen):
-%   rl/11_pareto.png, rl/12b_pareto.png, rl/12d_wsweep.png, rl/12h_long.png
+% Section V. Results. Full draft from Lab 13.
+%
+% Rule: every number is copied from a file in results/ (synced from dx300-sim,
+% commit in results/SOURCE.md). The comment at the end of a line names the file
+% and the place in it for the numbers on that line. Nothing is from memory.
+% Open items are marked [MISSING: ...] and [CITE: ...] in the text.
+%
+% Fed by dx300-sim (paths relative to its root; all synced to results/):
+%   rl/13_benchmark.md, rl/13_benchmark.csv   Lab 13 tables
+%   paper/figs/lab13/fig1..fig3 *.pdf         Fig. 1 to Fig. 3
+%   rl/12e_stats.md                           Lab 12e: PID and SAC rows, SAC budget
+%   rl/11_real_plant_tuning.md                Lab 11: how the fast PID point was chosen
+%   rl/12_eval.csv                            Lab 12: energy floor and fast PID point (72 rows)
+%   paper/figs/lab13/README.md                source of every plotted number (results/README.md)
+% Not used here, still candidates: rl/12f_loads.md, rl/12d_wsweep.md, rl/12h_long.md.
+
+\label{sec:results}%
+All results in this section are simulation results on the single-joint boom
+testbed. The geometry of the testbed is estimated and no real-machine data is
+used. The numbers therefore rank the controllers on this testbed; they are not
+predictions for a machine.
+
+Every controller runs the same 7200 moves: 100 unseen scenarios in each of the
+72 test rows of the benchmark protocol. % results/13_benchmark.md, header
+Each learned controller is a residual on the balanced PID, trained with the
+energy weight $w = 0.03$ and 3 seeds. % results/13_benchmark.md, header
+For these controllers we report the mean and the standard deviation over the
+seeds. The PID points are deterministic and have no seed spread. The energy
+metric is the mechanical energy per move, $E_{\mathrm{mech}}$. The gap to the
+floor is the mean $E_{\mathrm{mech}}$ above the mean energy floor of the same
+moves, in percent of that floor. The mean floor is 132.5~kJ. % results/README.md, table "Source of every number", row "Energy floor line"; results/12_eval.csv, mean of mean_floor_kJ over the 72 rows = 132.54
+
+\begin{table*}[t]
+\centering
+\caption{Lab 13 benchmark on 7200 unseen moves per controller and seed
+(simulation, single-joint boom testbed). Learned controllers: mean $\pm$
+standard deviation over 3 seeds. Miss: share of moves with a tip error over the
+bound. No learned controller beats the economical PID.}
+\label{tab:benchmark}
+\footnotesize
+% Every row: results/13_benchmark.md, table "13c. All controllers".
+% Budget column: results/13_benchmark.md (PPO step counts: section "Setup" and
+% the note under table 13c; offline: "100,000 gradient steps");
+% SAC 100k environment steps: results/12e_stats.md, "Training cost".
+\begin{tabular}{@{}llccccccc@{}}
+\toprule
+Controller & Training budget & Miss $>$10 cm & Miss $>$20 cm & Mean error & P95 error
+  & $E_{\mathrm{mech}}$ & Gap to floor & Beats the \\
+ & & (\%) & (\%) & (cm) & (cm) & (kJ) & (\%) & econ.\ PID \\
+\midrule
+\multicolumn{9}{@{}l}{\emph{Classical}} \\
+Economical PID & none & 0.97 & 0.00 & 2.1 & 6.4 & 159.1 & 20.0 & -- \\ % results/13_benchmark.md, 13c, row "economical PID"
+Balanced PID & none & 0.24 & 0.00 & 1.4 & 4.7 & 167.5 & 26.4 & no \\ % results/13_benchmark.md, 13c, row "balanced PID"
+\midrule
+\multicolumn{9}{@{}l}{\emph{Online, on-policy}} \\
+PPO & 100,352 steps & $54.36 \pm 17.20$ & $24.34 \pm 17.02$ & $14.5 \pm 5.5$ & $35.5 \pm 8.6$ & $318.6 \pm 14.8$ & $140.4 \pm 11.2$ & no \\ % results/13_benchmark.md, 13c, row "PPO 100k"
+PPO$^{\mathrm{a}}$ & 1,001,472 steps & $29.56 \pm 22.97$ & $7.42 \pm 9.42$ & $7.8 \pm 4.0$ & $18.7 \pm 8.5$ & $216.2 \pm 4.7$ & $63.1 \pm 3.6$ & no \\ % results/13_benchmark.md, 13c, row "PPO 1M (not equal budget)"
+\midrule
+\multicolumn{9}{@{}l}{\emph{Online, off-policy}} \\
+SAC & 100k steps & $18.68 \pm 6.33$ & $1.01 \pm 0.30$ & $5.7 \pm 1.0$ & $15.8 \pm 1.8$ & $191.5 \pm 7.7$ & $44.5 \pm 5.8$ & no \\ % results/13_benchmark.md, 13c, row "SAC 100k (Lab 12)"
+TD3 & 100k steps & $43.89 \pm 24.17$ & $25.86 \pm 16.43$ & $13.5 \pm 4.1$ & $41.1 \pm 4.0$ & $184.3 \pm 3.6$ & $39.0 \pm 2.7$ & no \\ % results/13_benchmark.md, 13c, row "TD3 100k"
+\midrule
+\multicolumn{9}{@{}l}{\emph{Offline}$^{\mathrm{b}}$} \\
+BC & 1M transitions & $0.69 \pm 0.64$ & $0.00 \pm 0.00$ & $2.2 \pm 0.2$ & $6.0 \pm 0.6$ & $162.6 \pm 1.0$ & $22.6 \pm 0.7$ & no \\ % results/13_benchmark.md, 13c, row "BC, 1M transitions"
+CQL & 1M transitions & $27.41 \pm 2.30$ & $10.94 \pm 5.54$ & $8.0 \pm 0.6$ & $25.2 \pm 5.7$ & $190.8 \pm 23.1$ & $43.9 \pm 17.4$ & no \\ % results/13_benchmark.md, 13c, row "CQL, 1M transitions"
+IQL & 1M transitions & $1.00 \pm 0.40$ & $0.02 \pm 0.04$ & $2.4 \pm 0.5$ & $6.8 \pm 0.8$ & $164.1 \pm 0.4$ & $23.8 \pm 0.3$ & no \\ % results/13_benchmark.md, 13c, row "IQL, 1M transitions"
+\bottomrule
+\multicolumn{9}{@{}l}{$^{\mathrm{a}}$Not at equal budget: about ten times the environment steps of the other online learners. Shown for reference.} \\ % results/13_benchmark.md, note under table 13c: 100,352 and 1,001,472 steps
+\multicolumn{9}{@{}l}{$^{\mathrm{b}}$Budget is the size of the fixed dataset in environment transitions. Each offline model takes 100,000 gradient steps on it.} \\ % results/13_benchmark.md, section "Setup"
+\end{tabular}
+\end{table*}
+
+\subsection{No learned controller beats the economical PID}
+
+Table~\ref{tab:benchmark} and Fig.~\ref{fig:energy_error} give the main result.
+A controller beats the economical PID when it has no more moves over 20~cm tip
+error, a lower mean $E_{\mathrm{mech}}$ with $p < 0.05$, and no significantly
+larger error. % results/13_benchmark.md, rule above table 13c
+The test is a Wilcoxon signed-rank test, paired per move over the 7200 moves
+[CITE: Wilcoxon signed-rank test]. % results/13_benchmark.md, text above table 13c
+No controller meets this rule. % results/13_benchmark.md, column "beats economical PID" and section "Statement"
+
+The economical PID has no move over 20~cm, a mean tip error of 2.1~cm and
+159.1~kJ per move, 20.0~\% above the floor. % results/13_benchmark.md, 13c, row "economical PID"
+Every learned controller uses more energy, with $p < 10^{-200}$ in each paired
+test. % results/13_benchmark.md, 13c, column "median diff E_mech kJ (p)": largest p of a learned row is 6.3e-208 (BC, 1M)
+The learned controllers fall into three clusters.
+
+\emph{Online learners.} SAC is the best online learner, with
+$5.7 \pm 1.0$~cm mean error, $1.01 \pm 0.30$~\% of moves over 20~cm and
+$191.5 \pm 7.7$~kJ. % results/13_benchmark.md, 13c, row "SAC 100k (Lab 12)"
+TD3 uses the least energy of the online learners, $184.3 \pm 3.6$~kJ, but
+$25.86 \pm 16.43$~\% of its moves end over 20~cm. % results/13_benchmark.md, 13c, row "TD3 100k"
+PPO at the equal budget is the worst controller on both axes of
+Fig.~\ref{fig:energy_error}: $14.5 \pm 5.5$~cm and $318.6 \pm 14.8$~kJ. % results/13_benchmark.md, 13c, row "PPO 100k"
+With about ten times the environment steps, PPO reaches $7.8 \pm 4.0$~cm and
+$216.2 \pm 4.7$~kJ, which is still worse than SAC at the equal budget. % results/13_benchmark.md, 13c, rows "PPO 1M (not equal budget)" and "SAC 100k (Lab 12)"
+
+\emph{Imitating offline learners.} BC and IQL lie between the two PID points in
+energy (Fig.~\ref{fig:energy_error}b): $162.6 \pm 1.0$~kJ and
+$164.1 \pm 0.4$~kJ, against 159.1~kJ for the economical and 167.5~kJ for the
+balanced PID. % results/13_benchmark.md, 13c, rows "BC, 1M transitions", "IQL, 1M transitions", "economical PID", "balanced PID"
+BC is the closest learned controller. It has no move over 20~cm and a mean
+error of $2.2 \pm 0.2$~cm. % results/13_benchmark.md, 13c, row "BC, 1M transitions" and section "Statement"
+It is still worse than the economical PID on both metrics: the median paired
+difference is $+0.12$~cm ($p = 5.0 \times 10^{-11}$) and $+1.13$~kJ
+($p = 6.3 \times 10^{-208}$). % results/13_benchmark.md, 13c, row "BC, 1M transitions", columns "median diff"
+The differences are small, but they have the wrong sign for learning.
+
+\emph{CQL.} CQL does not join BC and IQL. Its mean error is $8.0 \pm 0.6$~cm,
+$10.94 \pm 5.54$~\% of its moves end over 20~cm, and its energy,
+$190.8 \pm 23.1$~kJ, has the largest seed spread of all controllers. % results/13_benchmark.md, 13c, row "CQL, 1M transitions"; spread: column "E_mech kJ"
+
+The balanced PID shows that the trade between accuracy and energy already
+exists inside the classical family. It lowers the mean error from 2.1~cm to
+1.4~cm and pays for it with 167.5~kJ instead of 159.1~kJ. % results/13_benchmark.md, 13c, rows "economical PID" and "balanced PID"
+No learned controller improves on this trade. In
+Fig.~\ref{fig:energy_error}b, BC and IQL both lie above and to the right of
+the economical PID: more error and more energy. % results/13_benchmark.csv, rows bc_1M, iql_1M, economical; columns mean_cm_mean, E_mech_mean
+
+The pump-side energy $E_{\mathrm{pump}}$ is available only as a lower bound
+that rests on an assumed pump efficiency. % results/13_benchmark.md, "Status of the values"
+It puts the nine controllers in the same order as $E_{\mathrm{mech}}$, from
+126.5~kJ for the economical PID to $247.9 \pm 12.3$~kJ for PPO at the equal
+budget, and is not used further. % results/13_benchmark.md, 13c, column "E_pump kJ (lower bound, ASSUMED)"
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig1_energy_vs_error}
+\caption{Mean $E_{\mathrm{mech}}$ per move against mean tip error on 7200
+unseen moves (simulation, single-joint boom testbed). (a) All controllers.
+(b) Zoom on the PID points, BC and IQL. Bars: standard deviation over 3 seeds.
+Offline learners at 1M transitions. PPO 1M is not at equal budget.}
+\label{fig:energy_error}
+\end{figure}
+
+\subsection{Energy above the floor}
+
+Fig.~\ref{fig:gap_floor} puts the same result on one axis, the energy above
+the floor. The three PID points span 20.0~\% (economical) to 36.0~\% (fast). % results/13_benchmark.md, 13c, row "economical PID"; results/README.md, table "Source of every number", row "Fast PID, 36.0 %"; results/12_eval.csv, rows controller = fast, mean_E_mech_kJ and mean_floor_kJ
+BC, with $22.6 \pm 0.7$~\%, and IQL, with $23.8 \pm 0.3$~\%, lie inside this
+span. % results/13_benchmark.md, 13c, column "gap to floor %"
+Every online learner and CQL lie above it: TD3 $39.0 \pm 2.7$~\%, CQL
+$43.9 \pm 17.4$~\%, SAC $44.5 \pm 5.8$~\%, and PPO $140.4 \pm 11.2$~\% at the
+equal budget. % results/13_benchmark.md, 13c, column "gap to floor %"
+These controllers spend more energy above the floor than the fast PID, the
+classical point that was chosen for speed and not for energy. % results/11_real_plant_tuning.md, selection rule of the "fast" point
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig2_gap_to_floor}
+\caption{Energy above the energy floor, in percent of the floor. Bars:
+standard deviation over 3 seeds. The PID points have no seeds. Offline
+learners at 1M transitions.}
+\label{fig:gap_floor}
+\end{figure}
+
+\subsection{More data does not close the energy gap}
+
+The offline dataset is an equal mix of the balanced and the economical PID
+with Gaussian noise on the command ($\sigma = 0.1$). % results/13_benchmark.md, section "Offline dataset"
+Fig.~\ref{fig:dataset_size} shows BC and IQL on 100k, 300k and 1M transitions
+of it. CQL was trained on 1M transitions only. % results/13_benchmark.md, section "Setup"
+
+More data makes BC more accurate. Its mean error falls from $3.5 \pm 1.5$~cm
+to $2.8 \pm 0.9$~cm and $2.2 \pm 0.2$~cm. % results/13_benchmark.md, table "Dataset size (offline)", rows BC
+More data does not make BC cheaper: $E_{\mathrm{mech}}$ is $161.7 \pm 1.0$,
+$162.7 \pm 0.6$ and $162.6 \pm 1.0$~kJ. % results/13_benchmark.md, table "Dataset size (offline)", rows BC
+IQL is flat in accuracy ($2.4 \pm 0.1$, $2.1 \pm 0.1$ and $2.4 \pm 0.5$~cm),
+and its energy rises with the dataset, from $162.4 \pm 0.4$ to
+$164.1 \pm 0.4$~kJ. % results/13_benchmark.md, table "Dataset size (offline)", rows IQL
+IQL on 300k transitions is the only configuration whose error does not differ
+significantly from the economical PID (median difference $+0.11$~cm,
+$p = 0.072$). It still uses more energy (median $+1.23$~kJ,
+$p = 6.0 \times 10^{-221}$). % results/13_benchmark.md, table "Dataset size (offline)", row "IQL, 300k transitions"
+No dataset size brings an offline learner down to the 159.1~kJ of the
+economical PID. % results/13_benchmark.md, 13c, row "economical PID"
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig3_dataset_size}
+\caption{BC and IQL against the size of the offline dataset. Left: mean tip
+error. Right: mean $E_{\mathrm{mech}}$. Bars: standard deviation over 3 seeds.
+Dotted line: economical PID.}
+\label{fig:dataset_size}
+\end{figure}
