@@ -1,8 +1,194 @@
-% TODO(why learning lost and when it would win): no text yet.
-% Fed by dx300-sim (paths relative to its root; [synced] = copied to results/):
-%   rl/12g_sensitivity.md  [synced]  Lab 12g: does the ranking survive plant error
-%   rl/12f_loads.md        [synced]  Lab 12f: boom cylinder loads per controller
-%   rl/12d_wsweep.md                 Lab 12d: energy-weight sweep of residual SAC
-%   rl/12h_long.md                   Lab 12h: longer SAC training
-%   README.md                        Limitations section
-%   rl/13_benchmark.*      [synced once it exists]  Lab 13: PPO, TD3, BC, CQL, IQL
+% Section VI. Why learning lost and when it would win. Full draft from Lab 13.
+% The Lab 14 paragraph in subsection C is a placeholder: Lab 14 is still running.
+%
+% Rule: every number is copied from a file in results/ (synced from dx300-sim,
+% commit in results/SOURCE.md). The comment at the end of a line names the file
+% and the place in it for the numbers on that line. Nothing is from memory.
+% Open items are marked [MISSING: ...] and [CITE: ...] in the text.
+%
+% Fed by dx300-sim (paths relative to its root; all synced to results/):
+%   rl/13_benchmark.md, rl/13_benchmark.csv   Lab 13, table 13d and its reading
+%   paper/figs/lab13/fig4, fig5 *.pdf         Fig. 4 and Fig. 5
+%   rl/12g_sensitivity.md                     Lab 12g: does the ranking survive plant error
+%   rl/12e_stats.md                           Lab 12e: how the PID points were tuned
+%   rl/boom_env_real_robust.py                training env of every learner: the reward
+%   paper/figs/lab13/README.md                limits of Fig. 4 and Fig. 5 (results/README.md)
+% Not used here, still candidates: rl/12f_loads.md (its header says "Study, not
+% in the paper"), rl/12d_wsweep.md, rl/12h_long.md.
+
+\label{sec:why}%
+Section~\ref{sec:results} shows that learning lost. This section asks why, with diagnostics
+from the same 7200 moves, and then states the conditions under which the result
+could turn. The cause is not the same for the online and the offline learners.
+
+\subsection{Online learners waste energy through command oscillation}
+
+We measure the activity of a controller as the mean absolute rate of the
+applied valve command per move, mean $|du/dt|$. % results/13_benchmark.md, definition above table 13d
+We split the energy above the floor into oscillation, overshoot and direct
+excess. The shares do not add to 100~\% because of a shortfall term. % results/13_benchmark.md, text above table 13d
+
+The economical PID has a command activity of 0.50~s$^{-1}$ and the balanced PID
+of 0.64~s$^{-1}$. % results/13_benchmark.md, 13d, rows "economical PID" and "balanced PID"
+The online learners move the valve far more: TD3 2.23, SAC 2.81 and PPO
+15.96~s$^{-1}$ at the equal budget, which is 4 to 32 times the activity of the
+economical PID. % results/13_benchmark.md, 13d, column "mean abs(du/dt) 1/s" and first bullet of the reading
+Their energy above the floor is 51.7 to 186.1~kJ per move, against 26.6~kJ for
+the economical PID, and 55 to 70~\% of it is oscillation. % results/13_benchmark.md, 13d, columns "excess kJ" and "oscillation %", first bullet of the reading
+Fig.~\ref{fig:oscillation} shows the relation for all nine controllers. The
+order of the controllers by command activity is also their order by
+oscillation energy. % results/13_benchmark.csv, columns du_dt and excess_kJ x oscillation_share / 100 (what Fig. 4 plots); order checked for all 9 rows
+
+This explains the energy result of Section~\ref{sec:results}. An online learner adds a
+residual to a PID that is already smooth. The reward penalises tracking error,
+speed and power, and has no term on the rate of the command. % results/boom_env_real_robust.py, docstring line "reward" and the reward line in step(): terms e^2, omega^2 and power, none on the command rate; check against Section IV when it is written
+The residual that comes out of training switches the valve back and forth, and
+the plant turns each reversal into energy that does no useful work on the
+boom [CITE: action smoothness in learned continuous control].
+
+The oscillation also explains the accuracy result. The error of the online
+learners does not come from the sensor noise. Without noise it is already 5.5
+to 14.2~cm, against 1.4~cm for the economical PID. % results/13_benchmark.md, 13d, column "error cm, noise 0 deg", second bullet of the reading
+From no noise to 1~deg of noise it changes by 0.8~cm at most, while the error
+of the economical PID grows by 2.6~cm. % results/13_benchmark.md, second bullet of the reading under table 13d
+The residual itself moves the boom off the target.
+
+More training reduces the oscillation but does not remove it. With about ten
+times the environment steps, the command activity of PPO falls from 15.96 to
+4.75~s$^{-1}$ and its energy above the floor from 186.1 to 83.7~kJ. % results/13_benchmark.md, 13d, rows "PPO 100k" and "PPO 1M (not equal budget)"
+This is still about three times the energy above the floor of the economical
+PID. % results/13_benchmark.md, 13d: 83.7 kJ against 26.6 kJ
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig4_smoothness_vs_oscillation}
+\caption{Oscillation energy per move against command activity, both axes
+logarithmic. Values pooled over the 3 seeds. Offline learners at 1M
+transitions. The fast PID is not shown: its energy split was not computed.} % results/README.md, section "Limits of the figures", item "Fig. 4 has no fast PID"
+\label{fig:oscillation}
+\end{figure}
+
+\subsection{Offline learners return the dataset}
+
+BC and IQL do not oscillate. Their command activity is 0.55~s$^{-1}$, the level
+of the two PID points, and their energy above the floor is 30.0 and 31.6~kJ. % results/13_benchmark.md, 13d, rows "BC, 1M transitions" and "IQL, 1M transitions"
+They lose for a different reason. The dataset holds the balanced and the
+economical PID in equal parts, and a learner that imitates this mix lands
+between the two. This is what Section~\ref{sec:results} shows: 162.6 and 164.1~kJ, between
+159.1 and 167.5~kJ. % results/13_benchmark.md, third and fourth bullet of the reading under table 13d
+An imitating learner can match the better behaviour in its data. It has no
+reason to pass it [CITE: behaviour cloning and its dependence on data quality].
+IQL is allowed to weight the data by value [CITE: IQL], but the reward does not
+point it to the economical half (Section~\ref{sec:reward}).
+
+CQL fails in a third way. Its command is smooth, 0.76~s$^{-1}$, but its error
+is 7.6~cm without any sensor noise, and 56~\% of its 58.2~kJ above the floor is
+overshoot. % results/13_benchmark.md, 13d, row "CQL, 1M transitions" and fifth bullet of the reading
+CQL ran with the library defaults and on one dataset size, so this is a result
+for that configuration and not for the method [CITE: CQL]. % results/13_benchmark.md, section "Setup"
+
+\subsection{The reward does not ask for the economical PID}
+\label{sec:reward}
+
+The benchmark ranks the economical PID first on energy: 20.0~\% above the
+floor, against 26.4~\% for the balanced PID. % results/13_benchmark.md, 13c, column "gap to floor %"
+The training reward ranks the two the other way. On 300 episodes of the
+training distribution without noise, the return per episode is $-9.78$ for the
+balanced PID and $-10.30$ for the economical PID. % results/13_benchmark.md, last bullet of the reading under table 13d
+The 1M dataset, with command noise, gives the same order: $-10.22$ against
+$-10.41$, on different episodes for the two behaviours. % results/13_benchmark.md, last bullet of the reading under table 13d; table "Offline dataset", rows 1M
+Fig.~\ref{fig:reward_mismatch} shows this pair. A learner that maximises this
+reward is not pushed toward the economical PID. With the energy weight
+$w = 0.03$, the reward buys the accuracy of the balanced PID with energy, and
+the benchmark then counts that energy against the learner.
+
+The evidence has limits. The mismatch is measured for the two PID points only.
+The return of the learned controllers that were evaluated was not measured. % results/13_benchmark.md, last bullet of the reading under table 13d
+The hollow markers in Fig.~\ref{fig:reward_mismatch} are returns logged during
+training, with exploration noise and on the training distribution, so they
+give a rough position only. The offline learners have no return and are not in
+the figure. % results/README.md, section "Limits of the figures", item "Fig. 5 mixes three kinds of return"
+The mismatch is therefore a property of the reward that we have measured. It
+is not yet a cause that we have shown.
+
+% ---- PLACEHOLDER: Lab 14 is still running. Replace this paragraph. ----
+% Needed from Lab 14, synced to results/ before any number is written here:
+%   (1) the corrected reward and the return of both PID points under it,
+%   (2) the benchmark rows of the learners retrained on it (Table I columns),
+%   (3) their command activity and energy split (table 13d columns).
+% Then keep ONE of the two closing sentences drafted below and delete the other.
+Lab 14 tests the cause directly. \textbf{[MISSING: Lab 14 design, one sentence:
+the corrected reward and which learners were retrained on it.]}
+\textbf{[MISSING: Lab 14 check that the corrected reward ranks the economical
+PID above the balanced PID, with the two returns.]}
+\textbf{[MISSING: Lab 14 outcome: miss over 20~cm, mean error,
+$E_{\mathrm{mech}}$ and gap to the floor of the retrained learners, and whether
+any of them beats the economical PID.]}
+% If a retrained learner reaches or beats the economical PID:
+%   "With the corrected reward the gap closes, so the reward mismatch was a
+%    main cause of the result in Section V."
+% If none does:
+%   "The corrected reward does not close the gap, so the mismatch is not the
+%    main cause, and the oscillation of Section VI-A remains the explanation
+%    for the online learners."
+% ---- END PLACEHOLDER ----
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig5_reward_mismatch}
+\caption{Energy above the floor against the return of the training reward.
+Filled squares: PID points, return without noise on the training distribution.
+Hollow markers: online learners, return logged during training (rough position
+only). The energy axis is from the unseen evaluation moves. The reward gives
+the balanced PID the higher return although it uses more energy.}
+\label{fig:reward_mismatch}
+\end{figure}
+
+\subsection{When learning would win}
+
+The result is negative for this testbed and this setup. The diagnostics point
+to the conditions that would have to change. We state them as conditions, not
+as results.
+
+\emph{The reward must rank controllers as the benchmark does.} A learner
+cannot be expected to find an operating point that its objective scores below
+another one. This is the condition that Lab 14 tests.
+
+\emph{The command must be kept smooth.} The online learners lose their energy
+to oscillation, not to a wrong operating point. A penalty on the command rate,
+a filter on the action or a policy with a smoothness constraint attacks this
+cause directly [CITE: action smoothness in learned continuous control]. We did
+not test any of these.
+
+\emph{The data must contain something better than the baseline.} BC and IQL
+return what the dataset holds. Here the dataset was made by the two PID points,
+so the economical PID is the best that imitation can reach. Offline learning
+can only win with data from a better source, or with a method that reliably
+improves on its data [CITE: offline RL and dataset coverage].
+
+\emph{The baseline must be weak or expensive.} The PID points needed no
+training. They were tuned by a grid search on 20 tuning scenarios. % results/12e_stats.md, section "Training cost"
+Every learned controller needed at least 100k environment steps or a dataset of
+100k transitions, and still lost. % results/13_benchmark.md, table 13c and table "Dataset size (offline)"
+Learning is more likely to pay where no such baseline exists, for example in
+coordinated multi-joint motion or in contact with soil [CITE: learned control
+of excavators beyond single-joint tracking]. A single-joint boom testbed cannot
+show this.
+
+Plant error alone is not such a condition. In Lab 12g we perturbed the moment
+arm, the gravity torque, the inertia and the cylinder friction of the plant by
+factors of 0.8 to 1.2, while the controllers kept the nominal model. % results/12g_sensitivity.md, header
+The economical PID dominated all four SAC variants of Lab 12 in 31 of the 33
+plant settings. % results/12g_sensitivity.md, section "Summary"
+In the other two settings, with the moment arm, the gravity torque and the
+inertia all 20~\% above nominal, one SAC variant used less energy than the PID
+(188.1 against 191.5~kJ, and 188.0 against 191.1~kJ). It still missed 4.42~\%
+and 4.46~\% of the moves by over 20~cm, against none for the PID. % results/12g_sensitivity.md, table "Per setting", rows r1.2_g1.2_j1.2_b0.8 and r1.2_g1.2_j1.2_b1.2, columns "PID economical" and "res_eco_w0.1"
+This test covers SAC only.
+
+Two limits bound all of these statements. First, the testbed is a
+single-joint boom model with estimated geometry, and there is no real-machine
+data. Second, the Lab 13 learners ran close to their library defaults, with
+3 seeds and one energy weight, while the PID points were tuned on the testbed. % results/13_benchmark.md, section "Setup"; results/12e_stats.md, section "Training cost"
+A tuned learner may do better than the ones we report. The benchmark shows
+that learning lost under these conditions. It does not show that learning must lose.
