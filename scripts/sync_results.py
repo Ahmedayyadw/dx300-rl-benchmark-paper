@@ -33,7 +33,12 @@ SOURCES = [
     "rl/12g_sensitivity.md",
     "rl/12f_loads.md",
     "rl/11_real_plant_tuning.md",
-    "rl/13_benchmark.*",  # Lab 13: appears once the benchmark has run
+    "rl/13_benchmark.md",  # Lab 13: benchmark tables and their reading
+    "rl/13_benchmark.csv",  # Lab 13: the same rows at full precision
+    "paper/figs/lab13/*.pdf",  # Lab 13: Fig. 1 to Fig. 5
+    "paper/figs/lab13/README.md",  # Lab 13: source and limits of every figure
+    "rl/12_eval.csv",  # Lab 12: per-row results; energy floor and fast PID point
+    "rl/boom_env_real_robust.py",  # training env of every learner; the reward
 ]
 
 
