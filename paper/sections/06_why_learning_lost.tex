@@ -1,5 +1,5 @@
-% Section VI. Why learning lost and when it would win. Full draft from Lab 13.
-% The Lab 14 paragraph in subsection C is a placeholder: Lab 14 is still running.
+% Section VI. Why learning lost and when it would win. Full draft from Lab 13,
+% with the Lab 14 results in subsection C and the Lab 13e energy split in the limits.
 %
 % Rule: every number is copied from a file in results/ (synced from dx300-sim,
 % commit in results/SOURCE.md). The comment at the end of a line names the file
@@ -13,6 +13,8 @@
 %   rl/12e_stats.md                           Lab 12e: how the PID points were tuned
 %   rl/boom_env_real_robust.py                training env of every learner: the reward
 %   paper/figs/lab13/README.md                limits of Fig. 4 and Fig. 5 (results/README.md)
+%   rl/14_reward_fix.md, rl/14_benchmark.csv  Lab 14: corrected reward, Table II, reward hacking, BC
+%   rl/13e_direction_split.md                 Lab 13e: boom-up / boom-down split of E_mech
 % Not used here, still candidates: rl/12f_loads.md (its header says "Study, not
 % in the paper"), rl/12d_wsweep.md, rl/12h_long.md.
 
@@ -111,27 +113,78 @@ the figure. % results/README.md, section "Limits of the figures", item "Fig. 5 m
 The mismatch is therefore a property of the reward that we have measured. It
 is not yet a cause that we have shown.
 
-% ---- PLACEHOLDER: Lab 14 is still running. Replace this paragraph. ----
-% Needed from Lab 14, synced to results/ before any number is written here:
-%   (1) the corrected reward and the return of both PID points under it,
-%   (2) the benchmark rows of the learners retrained on it (Table I columns),
-%   (3) their command activity and energy split (table 13d columns).
-% Then keep ONE of the two closing sentences drafted below and delete the other.
-Lab 14 tests the cause directly. \textbf{[MISSING: Lab 14 design, one sentence:
-the corrected reward and which learners were retrained on it.]}
-\textbf{[MISSING: Lab 14 check that the corrected reward ranks the economical
-PID above the balanced PID, with the two returns.]}
-\textbf{[MISSING: Lab 14 outcome: miss over 20~cm, mean error,
-$E_{\mathrm{mech}}$ and gap to the floor of the retrained learners, and whether
-any of them beats the economical PID.]}
-% If a retrained learner reaches or beats the economical PID:
-%   "With the corrected reward the gap closes, so the reward mismatch was a
-%    main cause of the result in Section V."
-% If none does:
-%   "The corrected reward does not close the gap, so the mismatch is not the
-%    main cause, and the oscillation of Section VI-A remains the explanation
-%    for the online learners."
-% ---- END PLACEHOLDER ----
+Lab 14 tests the cause directly. The corrected reward raises the weight of the
+power term from 0.03 to 20 and adds a stall term that charges a tip error over
+5~cm while the boom is nearly at rest, $|\omega| < 0.01$~rad/s; the sum is
+scaled by 1/50. % results/14_reward_fix.md, section "14a. Corrected reward" (both reward lines) and "Status of the values"
+SAC and TD3 were retrained on it for 100k environment steps, and IQL and CQL on
+the Lab 13 1M dataset relabelled with it. BC was trained on the
+economical-PID episodes of that dataset only (500k transitions). % results/14_reward_fix.md, section "Setup"
+% Passage a) (approved wording). Returns: results/14_reward_fix.md, table "Return on the training objective"
+% (economical -4.699, balanced -4.732, fast -4.830; SAC -4.339, TD3 -4.213). Stop distance and speed: table
+% under "Why SAC and TD3 score higher ..." (final error 50.1 / 41.6 cm, mean abs(omega) last 2 s 0.0209 / 0.0212
+% rad/s) and table "14e" (mean error 43.0 / 40.6 cm). What the check tested: last bullet of that section.
+The corrected reward was checked to rank the economical PID above the balanced
+and fast PIDs and above controllers that stop short at rest; SAC and TD3
+nevertheless reached a higher return by stopping 40--50~cm short while still
+moving above the 0.01~rad/s stall threshold, a behaviour the check did not
+include. A reward validated on a finite set of candidate behaviours can still
+be exploited by behaviours the optimiser discovers.
+
+Table~\ref{tab:lab14} gives the outcome on the 7200 unseen moves. No Lab~14
+controller beats the economical PID. % results/14_reward_fix.md, table "14e", column "beats economical PID", and section "Statement"
+SAC and TD3 use less energy than the PID, 136.0 and 134.8~kJ, because they do
+not finish the move: 48.06 and 48.75~\% of their moves miss by over 20~cm. % results/14_reward_fix.md, table "14e", rows "SAC 100k, corrected reward" and "TD3 100k, corrected reward"
+Learning rates of 0.3 and 3 times the default, one seed each, give 30.22 to
+52.82~\% of moves over 20~cm. % results/14_reward_fix.md, table "14e", four rows "lr x0.3 (1 seed)" / "lr x3 (1 seed)", column "miss > 20 cm %"
+IQL reaches the energy of the PID, 159.1~kJ, but not its accuracy: 3.1~cm mean
+error and 0.47~\% of moves over 20~cm. CQL still misses 10.62~\%. % results/14_reward_fix.md, table "14e", rows "IQL 1M, corrected reward" and "CQL 1M, corrected reward"
+% Passage b) (approved wording; 2.2 cm per results/14_reward_fix.md, 4.371 - 2.136 cm in results/14_benchmark.csv).
+% results/14_reward_fix.md, table "14e", rows "economical PID" and "BC, economical-PID data only (500k)";
+% p: column "median diff error cm (p)"; gap: table "Does the gap close?" and bullet "Data (14c)".
+BC trained on economical-PID data is 1.5~kJ cheaper (157.6 vs 159.1~kJ) but
+2.2~cm less accurate (4.4 vs 2.1~cm mean error), with 0.1~\% vs 0~\% misses
+(paired test $p < 10^{-300}$); it does not beat the PID on both accuracy and
+energy.
+A reward that ranks the PID points in the intended order was not enough to
+close the gap. % results/14_reward_fix.md, section "Statement", last bullet
+
+\begin{table*}[t]
+\centering
+\caption{Lab 14 benchmark on the 7200 unseen moves of Table~\ref{tab:benchmark}
+(simulation). Learners retrained with the corrected reward; BC trained on the
+economical-PID data only. Mean $\pm$ standard deviation over 3 seeds unless
+noted. No controller beats the economical PID.}
+\label{tab:lab14}
+\footnotesize
+% Every row: results/14_reward_fix.md, table "14e. All controllers against the economical PID"
+% (full precision: results/14_benchmark.csv). Budgets: results/14_reward_fix.md, section "Setup".
+\begin{tabular}{@{}llccccccc@{}}
+\toprule
+Controller & Training budget & Miss $>$10 cm & Miss $>$20 cm & Mean error & P95 error
+  & $E_{\mathrm{mech}}$ & Gap to floor$^{\mathrm{a}}$ & Beats the \\
+ & & (\%) & (\%) & (cm) & (cm) & (kJ) & (\%) & econ.\ PID \\
+\midrule
+Economical PID & none & 0.97 & 0.00 & 2.1 & 6.4 & 159.1 & 20.0 & -- \\ % results/14_reward_fix.md, 14e, row "economical PID"
+\midrule
+\multicolumn{9}{@{}l}{\emph{Online, off-policy, corrected reward}} \\
+SAC & 100k steps & $66.82 \pm 8.94$ & $48.06 \pm 8.30$ & $43.0 \pm 12.4$ & $164.8 \pm 42.5$ & $136.0 \pm 9.8$ & $2.6 \pm 7.4$ & no \\ % results/14_reward_fix.md, 14e, row "SAC 100k, corrected reward"
+TD3 & 100k steps & $66.36 \pm 4.78$ & $48.75 \pm 9.73$ & $40.6 \pm 12.3$ & $141.0 \pm 19.4$ & $134.8 \pm 9.0$ & $1.7 \pm 6.8$ & no \\ % results/14_reward_fix.md, 14e, row "TD3 100k, corrected reward"
+\midrule
+\multicolumn{9}{@{}l}{\emph{Offline; IQL and CQL: corrected reward, Lab 13 dataset relabelled}} \\
+IQL & 1M transitions & $4.73 \pm 6.16$ & $0.47 \pm 0.72$ & $3.1 \pm 1.2$ & $9.3 \pm 4.2$ & $159.1 \pm 0.2$ & $20.1 \pm 0.2$ & no \\ % results/14_reward_fix.md, 14e, row "IQL 1M, corrected reward"
+CQL & 1M transitions & $33.88 \pm 31.88$ & $10.62 \pm 14.28$ & $8.8 \pm 5.9$ & $21.4 \pm 12.4$ & $150.5 \pm 3.7$ & $13.6 \pm 2.8$ & no \\ % results/14_reward_fix.md, 14e, row "CQL 1M, corrected reward"
+BC, econ.\ PID data & 500k transitions & $5.62 \pm 2.65$ & $0.09 \pm 0.08$ & $4.4 \pm 1.4$ & $9.8 \pm 1.7$ & $157.6 \pm 0.9$ & $18.9 \pm 0.7$ & no \\ % results/14_reward_fix.md, 14e, row "BC, economical-PID data only (500k)"
+\midrule
+\multicolumn{9}{@{}l}{\emph{Learning-rate check, corrected reward, 1 seed}} \\
+SAC, lr $\times 0.3$ & 100k steps & 68.97 & 52.82 & 40.5 & 145.7 & 134.2 & 1.2 & no \\ % results/14_reward_fix.md, 14e, row "SAC 100k, corrected reward, lr x0.3 (1 seed)"
+SAC, lr $\times 3$ & 100k steps & 45.67 & 30.22 & 36.3 & 187.4 & 132.1 & $-0.3$ & no \\ % results/14_reward_fix.md, 14e, row "SAC 100k, corrected reward, lr x3 (1 seed)"
+TD3, lr $\times 0.3$ & 100k steps & 67.00 & 45.28 & 32.5 & 122.1 & 139.3 & 5.1 & no \\ % results/14_reward_fix.md, 14e, row "TD3 100k, corrected reward, lr x0.3 (1 seed)"
+TD3, lr $\times 3$ & 100k steps & 59.69 & 33.83 & 26.6 & 83.5 & 143.9 & 8.6 & no \\ % results/14_reward_fix.md, 14e, row "TD3 100k, corrected reward, lr x3 (1 seed)"
+\bottomrule
+\multicolumn{9}{@{}l}{$^{\mathrm{a}}$The floor is the least energy of the full move. A controller that does not finish the move can come close to it or below it.} \\ % results/14_reward_fix.md, note under table "Command smoothness and energy split"
+\end{tabular}
+\end{table*}
 
 \begin{figure}[t]
 \centering
@@ -153,6 +206,14 @@ as results.
 \emph{The reward must rank controllers as the benchmark does.} A learner
 cannot be expected to find an operating point that its objective scores below
 another one. This is the condition that Lab 14 tests.
+% Passage c) (approved wording). results/14_reward_fix.md, table "14e", rows "SAC 100k, corrected reward"
+% (136.0 kJ, 48.06 % miss > 20 cm) and "economical PID" (159.1 kJ, 0.00 %); last bullet of "Statement".
+% No citation for Lagrangian SAC yet: add one from refs.bib before submission.
+Lab 14 shows that a reward penalty for misses can be traded against energy
+(SAC 136.0~kJ at 48.1~\% misses vs PID 159.1~kJ at 0~\%); a hard accuracy
+constraint (e.g.\ Lagrangian SAC) removes that trade and is the natural next
+step. It requires its own cost-threshold tuning and full evaluation, and is
+left for future work.
 
 \emph{The command must be kept smooth.} The online learners lose their energy
 to oscillation, not to a wrong operating point. A penalty on the command rate,
@@ -192,3 +253,13 @@ data. Second, the Lab 13 learners ran close to their library defaults, with
 3 seeds and one energy weight, while the PID points were tuned on the testbed. % results/13_benchmark.md, section "Setup"; results/12e_stats.md, section "Training cost"
 A tuned learner may do better than the ones we report. The benchmark shows
 that learning lost under these conditions. It does not show that learning must lose.
+
+% Passage d) (approved wording). results/13e_direction_split.md, table "Per controller" (16 rows, Lab 13
+% controllers only; columns "boom-down %" 45.06-48.62 and "W_neg %" 42.67-45.41, means over seeds)
+% and section "Spread" (3.56 percentage points).
+Across all 16 Lab~13 controllers, 45.1--48.6~\% of mechanical work is spent
+lowering the boom and 42.7--45.4~\% is negative work; the lowering share
+differs by at most 3.6 percentage points. Errors in the boom-down model, the
+least validated part of the plant, therefore affect all controllers similarly;
+we compare controllers relative to each other and do not claim the absolute
+lowering energy.

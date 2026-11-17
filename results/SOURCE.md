@@ -4,8 +4,8 @@ Written by `scripts/sync_results.py`. Do not edit by hand. Change the files
 in dx300-sim, then run `make sync`.
 
 - Source repository: https://github.com/Ahmedayyadw/dx300-sim
-- Commit: [`f14c1a97bb3f1dfdd36892ae391e07b1e972759a`](https://github.com/Ahmedayyadw/dx300-sim/commit/f14c1a97bb3f1dfdd36892ae391e07b1e972759a)
-- Commit date: 2026-11-16T04:26:56+03:00
+- Commit: [`655db975c4767451c24cadbd93681eda20406ecd`](https://github.com/Ahmedayyadw/dx300-sim/commit/655db975c4767451c24cadbd93681eda20406ecd)
+- Commit date: 2026-11-17T11:07:27+03:00
 - Branch: `master`
 
 | File | Source path | State at sync | SHA-256 (first 12) |
@@ -24,3 +24,6 @@ in dx300-sim, then run `make sync`.
 | `README.md` | `paper/figs/lab13/README.md` | matches commit | `10e30b4f03b3` |
 | `12_eval.csv` | `rl/12_eval.csv` | matches commit | `28351c2d914a` |
 | `boom_env_real_robust.py` | `rl/boom_env_real_robust.py` | matches commit | `11f689cf45a5` |
+| `14_reward_fix.md` | `rl/14_reward_fix.md` | matches commit | `a9e7784b586b` |
+| `14_benchmark.csv` | `rl/14_benchmark.csv` | matches commit | `a242c956a386` |
+| `13e_direction_split.md` | `rl/13e_direction_split.md` | matches commit | `0e86276675e9` |
