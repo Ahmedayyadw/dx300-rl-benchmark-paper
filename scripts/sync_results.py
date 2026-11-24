@@ -39,6 +39,9 @@ SOURCES = [
     "paper/figs/lab13/README.md",  # Lab 13: source and limits of every figure
     "rl/12_eval.csv",  # Lab 12: per-row results; energy floor and fast PID point
     "rl/boom_env_real_robust.py",  # training env of every learner; the reward
+    "rl/14_reward_fix.md",  # Lab 14: corrected reward, retrained learners, verdict
+    "rl/14_benchmark.csv",  # Lab 14: the same rows at full precision
+    "rl/14_returns.csv",  # Lab 14: return of every controller under both rewards
 ]
 
 
