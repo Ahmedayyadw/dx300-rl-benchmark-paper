@@ -1,5 +1,5 @@
 % Section VI. Why learning lost and when it would win. Full draft from Lab 13.
-% The Lab 14 paragraph in subsection C is a placeholder: Lab 14 is still running.
+% Lab 14 paragraph in subsection C: results/14_reward_fix.md (dx300-sim commit in results/SOURCE.md).
 %
 % Rule: every number is copied from a file in results/ (synced from dx300-sim,
 % commit in results/SOURCE.md). The comment at the end of a line names the file
@@ -111,27 +111,24 @@ the figure. % results/README.md, section "Limits of the figures", item "Fig. 5 m
 The mismatch is therefore a property of the reward that we have measured. It
 is not yet a cause that we have shown.
 
-% ---- PLACEHOLDER: Lab 14 is still running. Replace this paragraph. ----
-% Needed from Lab 14, synced to results/ before any number is written here:
-%   (1) the corrected reward and the return of both PID points under it,
-%   (2) the benchmark rows of the learners retrained on it (Table I columns),
-%   (3) their command activity and energy split (table 13d columns).
-% Then keep ONE of the two closing sentences drafted below and delete the other.
-Lab 14 tests the cause directly. \textbf{[MISSING: Lab 14 design, one sentence:
-the corrected reward and which learners were retrained on it.]}
-\textbf{[MISSING: Lab 14 check that the corrected reward ranks the economical
-PID above the balanced PID, with the two returns.]}
-\textbf{[MISSING: Lab 14 outcome: miss over 20~cm, mean error,
-$E_{\mathrm{mech}}$ and gap to the floor of the retrained learners, and whether
-any of them beats the economical PID.]}
-% If a retrained learner reaches or beats the economical PID:
-%   "With the corrected reward the gap closes, so the reward mismatch was a
-%    main cause of the result in Section V."
-% If none does:
-%   "The corrected reward does not close the gap, so the mismatch is not the
-%    main cause, and the oscillation of Section VI-A remains the explanation
-%    for the online learners."
-% ---- END PLACEHOLDER ----
+Lab 14 tests the cause directly. % results/14_reward_fix.md, sections 14a and Setup
+We corrected the reward with a larger energy weight and a stall term that
+charges a tip error above 5~cm only while the boom is stopped, so that stopping
+short is penalised and a slow approach is not. Under the corrected reward the
+economical PID has the highest return of the three PID points ($-4.699$ against
+$-4.732$ for the balanced PID), although the margin is thin. % results/14_reward_fix.md, return table
+SAC and TD3 were retrained on it, and IQL and CQL on the same dataset relabelled
+with it; BC was trained on the economical-PID episodes alone.
+No retrained controller beats the economical PID. % results/14_reward_fix.md, section Statement
+The online learners reach a higher corrected return than the PID, but they get
+it by not finishing the move: SAC and TD3 miss 20~cm on 48.1\,\% and 48.7\,\%
+of the moves at 136.0 and 134.8~kJ. % results/14_reward_fix.md, table 14e
+Offline, IQL reaches the energy of the PID (159.1~kJ) but not its accuracy
+(0.47\,\% misses, 3.1~cm mean error), and BC on economical-PID data is a near
+copy of the PID (0.09\,\% misses, 157.6~kJ, 4.4~cm).
+The corrected reward does not close the gap, so the ranking mismatch is not
+the main cause of the result in Section~V. A reward that ranks the PID points
+correctly but lets the learner pay for energy with error is exploited instead.
 
 \begin{figure}[t]
 \centering
@@ -152,7 +149,9 @@ as results.
 
 \emph{The reward must rank controllers as the benchmark does.} A learner
 cannot be expected to find an operating point that its objective scores below
-another one. This is the condition that Lab 14 tests.
+another one. Lab 14 shows that this is necessary but not enough: the
+reward must also not let the learner pay for energy by missing the target,
+for example through a hard accuracy constraint.
 
 \emph{The command must be kept smooth.} The online learners lose their energy
 to oscillation, not to a wrong operating point. A penalty on the command rate,
