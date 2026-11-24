@@ -17,7 +17,8 @@ both accuracy and energy. The economical PID has 0.00 % of moves over 20 cm tip 
 159.1 kJ mechanical energy per move; the closest learned controller, BC on 1M transitions,
 has 0.00 % at 162.6 kJ. The online learners spend their extra energy on command
 oscillation. The training reward ranks the balanced PID above the economical PID; Lab 14
-tests whether that mismatch explains the result and is still running. The contribution is
+corrects that ranking and retrains the learners, and the gap still does not close
+([results/14_reward_fix.md](results/14_reward_fix.md)). The contribution is
 a design procedure for deciding, with evidence, whether learning is justified. Written for
 the Design of AI Systems course (Okan University).
 
@@ -66,7 +67,7 @@ make sync
 - Source: `~/ahmed/dx300-sim` by default. Override with the `DX300_SIM` environment
   variable or `make sync SYNC_ARGS="--src /path/to/dx300-sim"`.
 - The list of files is `SOURCES` in [scripts/sync_results.py](scripts/sync_results.py).
-- Files that do not exist yet (for example the Lab 14 results) are skipped with a warning.
+- Files that do not exist yet are skipped with a warning.
 - `results/SOURCE.md` records the dx300-sim commit hash, and for each file whether it
   matched that commit when it was copied.
 - The sync only reads from dx300-sim. It never writes there.
@@ -83,7 +84,7 @@ Do not edit files in `results/` by hand. Change them in dx300-sim, then sync and
 | III | Method selection (on/off-policy, online/offline) | [03_method_selection.tex](paper/sections/03_method_selection.tex) | Not started |
 | IV | Benchmark protocol | [04_benchmark_protocol.tex](paper/sections/04_benchmark_protocol.tex) | Not started |
 | V | Results | [05_results.tex](paper/sections/05_results.tex) | Full draft (Lab 13) |
-| VI | Why learning lost and when it would win | [06_why_learning_lost.tex](paper/sections/06_why_learning_lost.tex) | Full draft; Lab 14 paragraph is a placeholder |
+| VI | Why learning lost and when it would win | [06_why_learning_lost.tex](paper/sections/06_why_learning_lost.tex) | Full draft (Labs 13–14) |
 | VII | Design lessons | [07_design_lessons.tex](paper/sections/07_design_lessons.tex) | Not started |
 | VIII | Conclusion | [08_conclusion.tex](paper/sections/08_conclusion.tex) | Not started |
 
